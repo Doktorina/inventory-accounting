@@ -80,15 +80,15 @@ class AccessLogger
     {
         foreach ($this->logFiles as $logFile) {
             $filePath = $this->logDir . '/' . $logFile;
-            
+
             // Создаем файл если не существует
             if (!file_exists($filePath)) {
                 @touch($filePath);
-                
+
                 // Устанавливаем права на файл
                 @chmod($filePath, 0644);
                 @chown($filePath, '0777! www-data');
-                
+
             }
         }
     }
@@ -259,24 +259,61 @@ class AccessLogger
      */
     public function readLogs(int $limit = 100, array $filters = []): array
     {
-        if (!file_exists($this->logFile)) {
-            return [];
+        $logs = [];
+        $filePath = $this->logFile;
+
+        if (!file_exists($filePath)) {
+            return $logs;
         }
 
-        $lines = file($this->logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $logs = [];
-        $count = 0;
+        // Открываем файл для чтения
+        $handle = @fopen($filePath, 'rb');
+        if (!$handle) {
+            return $logs;
+        }
 
-        // Читаем с конца (новые логи внизу)
-        for ($i = count($lines) - 1; $i >= 0 && $count < $limit; $i--) {
-            $logData = json_decode($lines[$i], true);
+        // Перемещаем указатель в конец файла
+        fseek($handle, 0, SEEK_END);
+        $pos = ftell($handle);
+        $buffer = '';
+        $linesRead = 0;
 
-            if ($logData && $this->filterLog($logData, $filters)) {
-                $logs[] = $logData;
-                $count++;
+        // Читаем файл блоками с конца, пока не наберём нужное количество строк
+        $blockSize = 4096;
+        while ($pos > 0 && $linesRead < $limit) {
+            $readSize = min($blockSize, $pos);
+            $pos -= $readSize;
+            fseek($handle, $pos);
+            $chunk = fread($handle, $readSize);
+            $buffer = $chunk . $buffer;
+
+            // Разбиваем на строки
+            $lines = explode("\n", $buffer);
+            // Сохраняем последнюю часть (которая может быть неполной) для следующей итерации
+            $buffer = '';
+            // Перебираем строки с конца
+            for ($i = count($lines) - 1; $i >= 0; $i--) {
+                $line = trim($lines[$i]);
+                if ($line === '')
+                    continue;
+                $logData = json_decode($line, true);
+                if ($logData && $this->filterLog($logData, $filters)) {
+                    $logs[] = $logData;
+                    $linesRead++;
+                    if ($linesRead >= $limit)
+                        break;
+                }
+            }
+            // Если мы не набрали нужное количество строк, но ещё есть данные, продолжаем
+            if ($linesRead < $limit && $pos > 0) {
+                // Сохраняем неполную строку для следующего блока
+                $buffer = $lines[0] ?? '';
             }
         }
 
+        fclose($handle);
+
+        // Возвращаем в порядке от новых к старым (как было)
         return $logs;
     }
 

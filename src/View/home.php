@@ -426,7 +426,7 @@ $totalNotifications = $confirmCount + $confirmRepairCount + $brigadesToItemsCoun
             <?php endif; ?>
             <?php if ($_SESSION["Status"] == 0): ?>
                 <li>
-                    <a href="/src/View/adminPanel.php"> 
+                    <a href="/src/View/adminPanel.php">
                         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
                             fill="#1f1f1f">
                             <path
@@ -522,21 +522,24 @@ $totalNotifications = $confirmCount + $confirmRepairCount + $brigadesToItemsCoun
                 window.rowSelectionManager.initializeTable('inventoryTable', 'row-container');
             }
         });
+
+        function openHelpModal() {
+            console.log(document.getElementById('helpModal'));
+            const helpModal = new bootstrap.Modal(document.getElementById('helpModal'));
+            helpModal.show();
+        }
     </script>
 
 
     <script type="module">
         import { initFilter } from '../../js/filters/filterConfigs.js';
 
+
         document.addEventListener("DOMContentLoaded", function () {
             setupModalHandlers();
             setupNotificationsPanel();
         });
 
-        function openHelpModal() {
-            const helpModal = new bootstrap.Modal(document.getElementById('helpModal'));
-            helpModal.show();
-        }
         // Настройка панели уведомлений
         function setupNotificationsPanel() {
             const panel = document.getElementById('notificationsPanel');
@@ -597,7 +600,7 @@ $totalNotifications = $confirmCount + $confirmRepairCount + $brigadesToItemsCoun
             //window.homeFilter = homeFilter;
 
             const analyticsFilter = initFilter('HOME', {
-                onRowCountChanged: (visible, total) => { console.log(`Показано ${visible} из ${total} записей`);  }
+                onRowCountChanged: (visible, total) => { console.log(`Показано ${visible} из ${total} записей`); }
             });
 
             // При размонтировании компонента очищаем фильтр
